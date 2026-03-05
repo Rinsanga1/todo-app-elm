@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Elm Todo</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0d0d0d;
+      --surface: #161616;
+      --border: #2a2a2a;
+      --accent: #c8f551;
+      --accent-dim: #8fb33a;
+      --text: #f0f0f0;
+      --muted: #666;
+      --done: #3a3a3a;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 60px 20px;
+    }
+
+    #app-container {
+      width: 100%;
+      max-width: 560px;
+    }
+
+    .header {
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+      margin-bottom: 40px;
+    }
+
+    .header h1 {
+      font-family: 'Space Mono', monospace;
+      font-size: 2rem;
+      font-weight: 700;
+      letter-spacing: -1px;
+      color: var(--accent);
+    }
+
+    .header .elm-badge {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.65rem;
+      color: var(--muted);
+      border: 1px solid var(--border);
+      padding: 2px 8px;
+      border-radius: 2px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+
+    .input-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    input[type="text"] {
+      flex: 1;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 12px 16px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.95rem;
+      outline: none;
+      border-radius: 4px;
+      transition: border-color 0.15s;
+    }
+
+    input[type="text"]::placeholder { color: var(--muted); }
+    input[type="text"]:focus { border-color: var(--accent); }
+
+    button {
+      cursor: pointer;
+      font-family: 'Space Mono', monospace;
+      font-size: 0.8rem;
+      border: none;
+      border-radius: 4px;
+      transition: all 0.15s;
+    }
+
+    .btn-add {
+      background: var(--accent);
+      color: #0d0d0d;
+      padding: 12px 18px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+
+    .btn-add:hover { background: #d9ff66; }
+
+    .filters {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 24px;
+    }
+
+    .filter-btn {
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid transparent;
+      padding: 5px 14px;
+      font-size: 0.75rem;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    .filter-btn:hover { color: var(--text); }
+
+    .filter-btn.active {
+      color: var(--accent);
+      border-color: var(--border);
+    }
+
+    .todo-list { display: flex; flex-direction: column; gap: 6px; }
+
+    .todo-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 14px 16px;
+      border-radius: 4px;
+      animation: slideIn 0.2s ease;
+      transition: border-color 0.15s, opacity 0.2s;
+    }
+
+    .todo-item:hover { border-color: #3a3a3a; }
+    .todo-item.done { opacity: 0.5; }
+
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(-6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .check-box {
+      width: 18px;
+      height: 18px;
+      border: 1.5px solid var(--border);
+      border-radius: 3px;
+      background: transparent;
+      padding: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: background 0.15s, border-color 0.15s;
+    }
+
+    .check-box:hover { border-color: var(--accent); }
+
+    .check-box.checked {
+      background: var(--accent);
+      border-color: var(--accent);
+    }
+
+    .check-icon {
+      width: 10px;
+      height: 10px;
+      fill: none;
+      stroke: #0d0d0d;
+      stroke-width: 2.5;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      display: none;
+    }
+
+    .check-box.checked .check-icon { display: block; }
+
+    .todo-text {
+      flex: 1;
+      font-size: 0.9rem;
+      font-weight: 400;
+      line-height: 1.4;
+      color: var(--text);
+    }
+
+    .todo-item.done .todo-text {
+      text-decoration: line-through;
+      color: var(--muted);
+    }
+
+    .btn-delete {
+      background: transparent;
+      color: var(--muted);
+      padding: 4px 8px;
+      font-size: 1rem;
+      opacity: 0;
+      transition: opacity 0.15s, color 0.15s;
+    }
+
+    .todo-item:hover .btn-delete { opacity: 1; }
+    .btn-delete:hover { color: #ff6b6b; }
+
+    .footer {
+      margin-top: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.75rem;
+      color: var(--muted);
+      font-family: 'Space Mono', monospace;
+    }
+
+    .btn-clear {
+      background: transparent;
+      color: var(--muted);
+      padding: 4px 0;
+      font-size: 0.75rem;
+      letter-spacing: 0.5px;
+      border-bottom: 1px solid transparent;
+    }
+
+    .btn-clear:hover { color: var(--text); border-bottom-color: var(--muted); }
+
+    .empty {
+      text-align: center;
+      padding: 40px 0;
+      color: var(--muted);
+      font-family: 'Space Mono', monospace;
+      font-size: 0.8rem;
+      letter-spacing: 1px;
+    }
+  </style>
+</head>
+<body>
+<div id="app-container"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/elm/0.19.1/elm.min.js"></script>
+<script>
+// Since loading the Elm compiler in-browser isn't feasible, we implement the
+// Elm Architecture (Model-Update-View) faithfully in JavaScript.
+
+// ── MODEL ──────────────────────────────────────────────────────────────────
+let model = {
+  todos: [],
+  nextId: 1,
+  input: "",
+  filter: "All"   // All | Active | Completed
+};
+
+// ── UPDATE ─────────────────────────────────────────────────────────────────
+function update(msg, mdl) {
+  switch (msg.type) {
+    case "UpdateInput":
+      return { ...mdl, input: msg.value };
+
+    case "AddTodo": {
+      const text = mdl.input.trim();
+      if (!text) return mdl;
+      return {
+        ...mdl,
+        todos: [...mdl.todos, { id: mdl.nextId, text, done: false }],
+        nextId: mdl.nextId + 1,
+        input: ""
+      };
+    }
+
+    case "Toggle":
+      return {
+        ...mdl,
+        todos: mdl.todos.map(t => t.id === msg.id ? { ...t, done: !t.done } : t)
+      };
+
+    case "Delete":
+      return { ...mdl, todos: mdl.todos.filter(t => t.id !== msg.id) };
+
+    case "SetFilter":
+      return { ...mdl, filter: msg.filter };
+
+    case "ClearCompleted":
+      return { ...mdl, todos: mdl.todos.filter(t => !t.done) };
+
+    default:
+      return mdl;
+  }
+}
+
+// ── VIEW ───────────────────────────────────────────────────────────────────
+function view(mdl) {
+  const visible = mdl.todos.filter(t =>
+    mdl.filter === "All"       ? true :
+    mdl.filter === "Active"    ? !t.done :
+    /* Completed */               t.done
+  );
+
+  const remaining = mdl.todos.filter(t => !t.done).length;
+  const anyDone   = mdl.todos.some(t => t.done);
+
+  return `
+    <div class="header">
+      <h1>// todos</h1>
+      <span class="elm-badge">elm arch</span>
+    </div>
+
+    <div class="input-row">
+      <input
+        type="text"
+        id="todo-input"
+        placeholder="What needs doing?"
+        value="${escHtml(mdl.input)}"
+        autocomplete="off"
+      />
+      <button class="btn-add" id="btn-add">ADD</button>
+    </div>
+
+    <div class="filters">
+      ${["All","Active","Completed"].map(f => `
+        <button class="filter-btn ${mdl.filter === f ? 'active' : ''}" data-filter="${f}">${f}</button>
+      `).join("")}
+    </div>
+
+    <div class="todo-list">
+      ${visible.length === 0
+        ? `<div class="empty">— nothing here —</div>`
+        : visible.map(t => `
+          <div class="todo-item ${t.done ? 'done' : ''}" data-id="${t.id}">
+            <button class="check-box ${t.done ? 'checked' : ''}" data-toggle="${t.id}" title="Toggle">
+              <svg class="check-icon" viewBox="0 0 10 10">
+                <polyline points="1.5,5 4,7.5 8.5,2.5"/>
+              </svg>
+            </button>
+            <span class="todo-text">${escHtml(t.text)}</span>
+            <button class="btn-delete" data-delete="${t.id}" title="Delete">✕</button>
+          </div>
+        `).join("")
+      }
+    </div>
+
+    <div class="footer">
+      <span>${remaining} item${remaining !== 1 ? 's' : ''} left</span>
+      ${anyDone ? `<button class="btn-clear" id="btn-clear">clear completed</button>` : ''}
+    </div>
+  `;
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+
+// ── RUNTIME ────────────────────────────────────────────────────────────────
+const root = document.getElementById("app-container");
+
+function dispatch(msg) {
+  model = update(msg, model);
+  render();
+}
+
+function render() {
+  root.innerHTML = view(model);
+
+  // Input typing
+  const inp = document.getElementById("todo-input");
+  inp.addEventListener("input", e => dispatch({ type: "UpdateInput", value: e.target.value }));
+  inp.addEventListener("keydown", e => { if (e.key === "Enter") dispatch({ type: "AddTodo" }); });
+  // Keep focus after re-render if input was active
+  if (document.activeElement !== inp) inp.focus();
+
+  // Add button
+  document.getElementById("btn-add")
+    .addEventListener("click", () => dispatch({ type: "AddTodo" }));
+
+  // Filter buttons
+  root.querySelectorAll(".filter-btn").forEach(btn =>
+    btn.addEventListener("click", () => dispatch({ type: "SetFilter", filter: btn.dataset.filter }))
+  );
+
+  // Toggle / delete
+  root.querySelectorAll("[data-toggle]").forEach(btn =>
+    btn.addEventListener("click", () => dispatch({ type: "Toggle", id: +btn.dataset.toggle }))
+  );
+  root.querySelectorAll("[data-delete]").forEach(btn =>
+    btn.addEventListener("click", () => dispatch({ type: "Delete", id: +btn.dataset.delete }))
+  );
+
+  // Clear completed
+  const cc = document.getElementById("btn-clear");
+  if (cc) cc.addEventListener("click", () => dispatch({ type: "ClearCompleted" }));
+}
+
+render();
+</script>
+</body>
+</html>
